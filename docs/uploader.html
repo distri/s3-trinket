@@ -2,7 +2,7 @@
 
 <html>
 <head>
-  <title>main</title>
+  <title>uploader</title>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
   <link rel="stylesheet" media="all" href="http://strd6.github.io/cdn/parallel/docco.css" />
@@ -18,7 +18,7 @@
               <div class="pilwrap">
                 <a class="pilcrow" href="#section-1">&#182;</a>
               </div>
-              <h1 id="s3-trinket">S3 Trinket</h1>
+              <h1 id="s3">S3</h1>
 
             </div>
             <div class="content"><pre><code class="lang-coffeescript">
@@ -32,7 +32,8 @@
               <div class="pilwrap">
                 <a class="pilcrow" href="#section-2">&#182;</a>
               </div>
-              <h2 id="usage">Usage</h2>
+              <p>Upload data directly to S3 from the client.</p>
+<h2 id="usage">Usage</h2>
 
             </div>
             <div class="content"><pre><code class="lang-coffeescript">
@@ -46,39 +47,28 @@
               <div class="pilwrap">
                 <a class="pilcrow" href="#section-3">&#182;</a>
               </div>
-              <p>Initializing</p>
-<blockquote>
-<pre><code>S3Trinket = require &quot;s3-trinket&quot;
-trinket = S3Trinket(JSON.parse localStorage.TRINKET_POLICY)</code></pre>
+              <blockquote>
+<pre><code>uploader = S3.uploader(JSON.parse(localStorage.S3Policy))
+uploader.upload
+  key: &quot;myfile.text&quot;
+  blob: new Blob [&quot;radical&quot;]
+  cacheControl: 60 # default 31536000</code></pre>
 </blockquote>
-<p>Loading a workspace</p>
-<blockquote>
-<pre><code>trinket.loadWorkspace(&quot;master&quot;)
-.then (data) -&gt;
-  console.log &quot;loaded workspace&quot;, data</code></pre>
-</blockquote>
-<p>Saving a workspace</p>
-<blockquote>
-<pre><code>trinket.saveWorkspace &quot;master&quot;, data</code></pre>
-</blockquote>
-<p>Post edited images.</p>
-<blockquote>
-<pre><code>trinket.post &quot;images&quot;, imgBlob, (namespacedSha) -&gt;</code></pre>
-</blockquote>
-<p>After sifting post image sets.</p>
-<blockquote>
-<pre><code>trinket.post &quot;image_sets&quot;, json, (namespacedSha) -&gt;</code></pre>
-</blockquote>
+<p>The policy is a JSON object with the following keys:</p>
+<ul>
+<li><code>accessKey</code></li>
+<li><code>policy</code></li>
+<li><code>signature</code></li>
+</ul>
+<p>Since these are all needed to create and sign the policy we keep them all
+together.</p>
+<p>Giving this object to the uploader method creates an uploader capable of
+asynchronously uploading files to the bucket specified in the policy.</p>
+<h2 id="notes">Notes</h2>
 
             </div>
-            <div class="content"><pre><code class="lang-coffeescript">Uploader = require <span class="string">"./uploader"</span>
-SHA1 = require <span class="string">"sha1"</span>
-
-module.exports = <span class="function"><span class="title">S3Trinket</span></span> = (policy) -&gt;
-  uploader = Uploader(policy)
-
-  user = getUserFromPolicy(policy)
-  base = <span class="string">"http://<span class="subst">#{policy.bucket}</span>.s3.amazonaws.com/<span class="subst">#{user}</span>"</span></code></pre>
+            <div class="content"><pre><code class="lang-coffeescript">
+</code></pre>
 </div>
         </li>
         
@@ -88,33 +78,12 @@ module.exports = <span class="function"><span class="title">S3Trinket</span></sp
               <div class="pilwrap">
                 <a class="pilcrow" href="#section-4">&#182;</a>
               </div>
-              <p>Post a blob to S3 using the given namespace as a content addressable store.</p>
+              <p>The policy must specify a <code>Cache-Control</code> header because we always try to set it.</p>
+<h2 id="implementation">Implementation</h2>
 
             </div>
-            <div class="content"><pre><code class="lang-coffeescript">  post: (blob) -&gt;
-    blobToS3 uploader, <span class="string">"<span class="subst">#{user}</span>data"</span>, blob
-
-  loadWorkspace: (name) -&gt;
-    $.getJSON <span class="string">"<span class="subst">#{base}</span>workspaces/<span class="subst">#{name}</span>.json"</span>
-
-  saveWorkspace: (name, data) -&gt;
-    key = <span class="string">"<span class="subst">#{user}</span>workspaces/<span class="subst">#{name}</span>.json"</span>
-    uploader.upload
-      key: key
-      blob: <span class="keyword">new</span> Blob [JSON.stringify(data)], type: <span class="string">"application/json"</span>
-      cacheControl: <span class="number">60</span>
-    .<span class="keyword">then</span> -&gt;
-      key
-
-  list: (namespace=<span class="string">""</span>) -&gt;
-    namespace = <span class="string">"<span class="subst">#{namespace}</span>"</span>
-
-    url = <span class="string">"<span class="subst">#{base}</span><span class="subst">#{namespace}</span>"</span>
-
-    $.get(url).<span class="keyword">then</span> (data) -&gt;
-      $(data).find(<span class="string">"Key"</span>).map -&gt;
-        <span class="keyword">this</span>.innerHTML
-      .get()</code></pre>
+            <div class="content"><pre><code class="lang-coffeescript">
+</code></pre>
 </div>
         </li>
         
@@ -124,10 +93,22 @@ module.exports = <span class="function"><span class="title">S3Trinket</span></sp
               <div class="pilwrap">
                 <a class="pilcrow" href="#section-5">&#182;</a>
               </div>
-              <p>Expose SHA1 for others to use.</p>
-
+              
             </div>
-            <div class="content"><pre><code class="lang-coffeescript">S3Trinket.SHA1 = SHA1</code></pre>
+            <div class="content"><pre><code class="lang-coffeescript">module.<span class="function"><span class="title">exports</span></span> = (credentials) -&gt;
+  {policy, signature, accessKey} = credentials
+  {acl, bucket} = extractPolicyData(policy)
+
+  upload: ({key, blob, cacheControl}) -&gt;
+    sendForm <span class="string">"https://<span class="subst">#{bucket}</span>.s3.amazonaws.com"</span>, objectToForm
+      key: key
+      <span class="string">"Content-Type"</span>: blob.type
+      <span class="string">"Cache-Control"</span>: <span class="string">"max-age=<span class="subst">#{cacheControl <span class="keyword">or</span> <span class="number">31536000</span>}</span>"</span>
+      AWSAccessKeyId: accessKey
+      acl: acl
+      policy: policy
+      signature: signature
+      file: blob</code></pre>
 </div>
         </li>
         
@@ -153,27 +134,38 @@ module.exports = <span class="function"><span class="title">S3Trinket</span></sp
               </div>
               
             </div>
-            <div class="content"><pre><code class="lang-coffeescript"><span class="function"><span class="title">blobToS3</span></span> = (uploader, namespace, blob) -&gt;
-  deferred = $.Deferred()
+            <div class="content"><pre><code class="lang-coffeescript"><span class="function"><span class="title">sendForm</span></span> = (url, formData) -&gt;
+  $.ajax
+    url: url
+    data: formData
+    processData: <span class="literal">false</span>
+    contentType: <span class="literal">false</span>
+    type: <span class="string">'POST'</span>
 
-  SHA1 blob, (sha) -&gt;
-    key = <span class="string">"<span class="subst">#{namespace}</span>/<span class="subst">#{sha}</span>"</span>
+<span class="function"><span class="title">objectToForm</span></span> = (data) -&gt;
+  formData = Object.keys(data).reduce (formData, key) -&gt;
+    formData.append(key, data[key])
 
-    uploader.upload
-      key: key
-      blob: blob
-    .<span class="keyword">then</span> -&gt;
-      deferred.resolve key
-    , (error) -&gt;
-      deferred.reject(error)
+    <span class="keyword">return</span> formData
+  , <span class="keyword">new</span> FormData
 
-  deferred.promise()
+<span class="function"><span class="title">extractPolicyData</span></span> = (policy) -&gt;
+  policyObject = JSON.parse(atob(policy))
 
-<span class="function"><span class="title">getUserFromPolicy</span></span> = (policy) -&gt;
-  conditions = JSON.parse(atob(policy.policy)).conditions.filter ([a, b, c]) -&gt;
-    a <span class="keyword">is</span> <span class="string">"starts-with"</span> <span class="keyword">and</span> b <span class="keyword">is</span> <span class="string">"$key"</span>
+  conditions = policyObject.conditions
 
-  conditions[<span class="number">0</span>][<span class="number">2</span>]</code></pre>
+  acl: getKey(conditions, <span class="string">"acl"</span>)
+  bucket: getKey(conditions, <span class="string">"bucket"</span>)
+
+<span class="function"><span class="title">getKey</span></span> = (conditions, key) -&gt;
+  results = conditions.filter (condition) -&gt;
+    <span class="keyword">typeof</span> condition <span class="keyword">is</span> <span class="string">"object"</span>
+  .map (object) -&gt;
+    object[key]
+  .filter (value) -&gt;
+    value
+
+  results[<span class="number">0</span>]</code></pre>
 </div>
         </li>
         

@@ -14,41 +14,51 @@ window["distri/s3-trinket:master"]({
     },
     "main.coffee.md": {
       "path": "main.coffee.md",
-      "content": "S3 Trinket\n==========\n\n    S3 = require \"s3\"\n    SHA1 = require \"sha1\"\n\n    module.exports = (policy) ->\n      uploader = S3.uploader(policy)\n\n      user = getUserFromPolicy(policy)\n      base = \"http://#{policy.bucket}.s3.amazonaws.com/#{user}\"\n\nPost a blob to S3 using the given namespace as a content addressable store.\n\n      post: (namespace, blob) ->\n        blobToS3 uploader, \"#{user}#{namespace}\", blob\n\n      loadWorkspace: (name) ->\n        $.getJSON \"#{base}workspaces/#{name}.json\"\n\n      saveWorkspace: (name, data) ->\n        uploader.upload\n          key: \"#{user}workspaces/#{name}.json\"\n          blob: new Blob [JSON.stringify(data)], type: \"application/json\"\n          cacheControl: 60\n\n      list: (namespace=\"\") ->\n        namespace = \"#{namespace}\"\n\n        url = \"#{base}#{namespace}\"\n\n        $.get(url).then (data) ->\n          $(data).find(\"Key\").map ->\n            this.innerHTML\n          .get()\n\nHelpers\n-------\n\n    blobToS3 = (uploader, namespace, blob) ->\n      SHA1 blob, (sha) ->\n        key = \"#{namespace}/#{sha}\"\n\n        uploader.upload\n          key: key\n          blob: blob\n\n    getUserFromPolicy = (policy) ->\n      conditions = JSON.parse(atob(policy.policy)).conditions.filter ([a, b, c]) ->\n        a is \"starts-with\" and b is \"$key\"\n\n      conditions[0][2]\n",
+      "content": "S3 Trinket\n==========\n\nUsage\n-----\n\nInitializing\n\n>     S3Trinket = require \"s3-trinket\"\n>     trinket = S3Trinket(JSON.parse localStorage.TRINKET_POLICY)\n\nLoading a workspace\n\n>     trinket.loadWorkspace(\"master\")\n>     .then (data) ->\n>       console.log \"loaded workspace\", data\n\nSaving a workspace\n\n>     trinket.saveWorkspace \"master\", data\n\nPost edited images.\n\n>     trinket.post \"images\", imgBlob, (namespacedSha) ->\n\nAfter sifting post image sets.\n\n>     trinket.post \"image_sets\", json, (namespacedSha) ->\n\n    Uploader = require \"./uploader\"\n    SHA1 = require \"sha1\"\n\n    module.exports = S3Trinket = (policy) ->\n      uploader = Uploader(policy)\n\n      user = getUserFromPolicy(policy)\n      base = \"http://#{policy.bucket}.s3.amazonaws.com/#{user}\"\n\nPost a blob to S3 using the given namespace as a content addressable store.\n\n      post: (blob) ->\n        blobToS3 uploader, \"#{user}data\", blob\n\n      loadWorkspace: (name) ->\n        $.getJSON \"#{base}workspaces/#{name}.json\"\n\n      saveWorkspace: (name, data) ->\n        key = \"#{user}workspaces/#{name}.json\"\n        uploader.upload\n          key: key\n          blob: new Blob [JSON.stringify(data)], type: \"application/json\"\n          cacheControl: 60\n        .then ->\n          key\n\n      list: (namespace=\"\") ->\n        namespace = \"#{namespace}\"\n\n        url = \"#{base}#{namespace}\"\n\n        $.get(url).then (data) ->\n          $(data).find(\"Key\").map ->\n            this.innerHTML\n          .get()\n\nExpose SHA1 for others to use.\n\n    S3Trinket.SHA1 = SHA1\n\nHelpers\n-------\n\n    blobToS3 = (uploader, namespace, blob) ->\n      deferred = $.Deferred()\n\n      SHA1 blob, (sha) ->\n        key = \"#{namespace}/#{sha}\"\n\n        uploader.upload\n          key: key\n          blob: blob\n        .then ->\n          deferred.resolve key\n        , (error) ->\n          deferred.reject(error)\n\n      deferred.promise()\n\n    getUserFromPolicy = (policy) ->\n      conditions = JSON.parse(atob(policy.policy)).conditions.filter ([a, b, c]) ->\n        a is \"starts-with\" and b is \"$key\"\n\n      conditions[0][2]\n",
       "mode": "100644"
     },
     "pixie.cson": {
       "path": "pixie.cson",
-      "content": "version: \"0.1.0\"\nremoteDependencies: [\n  \"https://code.jquery.com/jquery-1.11.0.min.js\"\n]\ndependencies:\n  s3: \"distri/s3:v0.2.0\"\n  sha1: \"distri/sha1:v0.2.0\"\n",
+      "content": "version: \"0.1.1\"\nremoteDependencies: [\n  \"https://code.jquery.com/jquery-1.11.0.min.js\"\n]\ndependencies:\n  sha1: \"distri/sha1:v0.2.0\"\n",
       "mode": "100644"
     },
     "test/test.coffee": {
       "path": "test/test.coffee",
-      "content": "S3Trinket = require \"../main\"\n\ntrinket = S3Trinket(JSON.parse(localStorage.TRINKET_POLICY))\n\ntrinket.loadWorkspace(\"master\").then (data) ->\n  console.log data\n",
+      "content": "S3Trinket = require \"../main\"\n\ntrinket = S3Trinket(JSON.parse(localStorage.TRINKET_POLICY))\n\ntrinket.saveWorkspace(\"yolo\", radical: true).then (key) ->\n  console.log key\n\ntrinket.post(new Blob([\"duder\"], type: \"text/plain\")).then (key) ->\n  console.log key\n",
+      "mode": "100644"
+    },
+    "uploader.coffee.md": {
+      "path": "uploader.coffee.md",
+      "content": "S3\n====\n\nUpload data directly to S3 from the client.\n\nUsage\n-----\n\n>     uploader = S3.uploader(JSON.parse(localStorage.S3Policy))\n>     uploader.upload\n>       key: \"myfile.text\"\n>       blob: new Blob [\"radical\"]\n>       cacheControl: 60 # default 31536000\n\nThe policy is a JSON object with the following keys:\n\n- `accessKey`\n- `policy`\n- `signature`\n\nSince these are all needed to create and sign the policy we keep them all\ntogether.\n\nGiving this object to the uploader method creates an uploader capable of\nasynchronously uploading files to the bucket specified in the policy.\n\nNotes\n-----\n\nThe policy must specify a `Cache-Control` header because we always try to set it.\n\nImplementation\n--------------\n\n    module.exports = (credentials) ->\n      {policy, signature, accessKey} = credentials\n      {acl, bucket} = extractPolicyData(policy)\n\n      upload: ({key, blob, cacheControl}) ->\n        sendForm \"https://#{bucket}.s3.amazonaws.com\", objectToForm\n          key: key\n          \"Content-Type\": blob.type\n          \"Cache-Control\": \"max-age=#{cacheControl or 31536000}\"\n          AWSAccessKeyId: accessKey\n          acl: acl\n          policy: policy\n          signature: signature\n          file: blob\n\nHelpers\n-------\n\n    sendForm = (url, formData) ->\n      $.ajax\n        url: url\n        data: formData\n        processData: false\n        contentType: false\n        type: 'POST'\n\n    objectToForm = (data) ->\n      formData = Object.keys(data).reduce (formData, key) ->\n        formData.append(key, data[key])\n\n        return formData\n      , new FormData\n\n    extractPolicyData = (policy) ->\n      policyObject = JSON.parse(atob(policy))\n\n      conditions = policyObject.conditions\n\n      acl: getKey(conditions, \"acl\")\n      bucket: getKey(conditions, \"bucket\")\n\n    getKey = (conditions, key) ->\n      results = conditions.filter (condition) ->\n        typeof condition is \"object\"\n      .map (object) ->\n        object[key]\n      .filter (value) ->\n        value\n\n      results[0]\n",
       "mode": "100644"
     }
   },
   "distribution": {
     "main": {
       "path": "main",
-      "content": "(function() {\n  var S3, SHA1, blobToS3, getUserFromPolicy;\n\n  S3 = require(\"s3\");\n\n  SHA1 = require(\"sha1\");\n\n  module.exports = function(policy) {\n    var base, uploader, user;\n    uploader = S3.uploader(policy);\n    user = getUserFromPolicy(policy);\n    base = \"http://\" + policy.bucket + \".s3.amazonaws.com/\" + user;\n    return {\n      post: function(namespace, blob) {\n        return blobToS3(uploader, \"\" + user + namespace, blob);\n      },\n      loadWorkspace: function(name) {\n        return $.getJSON(\"\" + base + \"workspaces/\" + name + \".json\");\n      },\n      saveWorkspace: function(name, data) {\n        return uploader.upload({\n          key: \"\" + user + \"workspaces/\" + name + \".json\",\n          blob: new Blob([JSON.stringify(data)], {\n            type: \"application/json\"\n          }),\n          cacheControl: 60\n        });\n      },\n      list: function(namespace) {\n        var url;\n        if (namespace == null) {\n          namespace = \"\";\n        }\n        namespace = \"\" + namespace;\n        url = \"\" + base + namespace;\n        return $.get(url).then(function(data) {\n          return $(data).find(\"Key\").map(function() {\n            return this.innerHTML;\n          }).get();\n        });\n      }\n    };\n  };\n\n  blobToS3 = function(uploader, namespace, blob) {\n    return SHA1(blob, function(sha) {\n      var key;\n      key = \"\" + namespace + \"/\" + sha;\n      return uploader.upload({\n        key: key,\n        blob: blob\n      });\n    });\n  };\n\n  getUserFromPolicy = function(policy) {\n    var conditions;\n    conditions = JSON.parse(atob(policy.policy)).conditions.filter(function(_arg) {\n      var a, b, c;\n      a = _arg[0], b = _arg[1], c = _arg[2];\n      return a === \"starts-with\" && b === \"$key\";\n    });\n    return conditions[0][2];\n  };\n\n}).call(this);\n",
+      "content": "(function() {\n  var S3Trinket, SHA1, Uploader, blobToS3, getUserFromPolicy;\n\n  Uploader = require(\"./uploader\");\n\n  SHA1 = require(\"sha1\");\n\n  module.exports = S3Trinket = function(policy) {\n    var base, uploader, user;\n    uploader = Uploader(policy);\n    user = getUserFromPolicy(policy);\n    base = \"http://\" + policy.bucket + \".s3.amazonaws.com/\" + user;\n    return {\n      post: function(blob) {\n        return blobToS3(uploader, \"\" + user + \"data\", blob);\n      },\n      loadWorkspace: function(name) {\n        return $.getJSON(\"\" + base + \"workspaces/\" + name + \".json\");\n      },\n      saveWorkspace: function(name, data) {\n        var key;\n        key = \"\" + user + \"workspaces/\" + name + \".json\";\n        return uploader.upload({\n          key: key,\n          blob: new Blob([JSON.stringify(data)], {\n            type: \"application/json\"\n          }),\n          cacheControl: 60\n        }).then(function() {\n          return key;\n        });\n      },\n      list: function(namespace) {\n        var url;\n        if (namespace == null) {\n          namespace = \"\";\n        }\n        namespace = \"\" + namespace;\n        url = \"\" + base + namespace;\n        return $.get(url).then(function(data) {\n          return $(data).find(\"Key\").map(function() {\n            return this.innerHTML;\n          }).get();\n        });\n      }\n    };\n  };\n\n  S3Trinket.SHA1 = SHA1;\n\n  blobToS3 = function(uploader, namespace, blob) {\n    var deferred;\n    deferred = $.Deferred();\n    SHA1(blob, function(sha) {\n      var key;\n      key = \"\" + namespace + \"/\" + sha;\n      return uploader.upload({\n        key: key,\n        blob: blob\n      }).then(function() {\n        return deferred.resolve(key);\n      }, function(error) {\n        return deferred.reject(error);\n      });\n    });\n    return deferred.promise();\n  };\n\n  getUserFromPolicy = function(policy) {\n    var conditions;\n    conditions = JSON.parse(atob(policy.policy)).conditions.filter(function(_arg) {\n      var a, b, c;\n      a = _arg[0], b = _arg[1], c = _arg[2];\n      return a === \"starts-with\" && b === \"$key\";\n    });\n    return conditions[0][2];\n  };\n\n}).call(this);\n",
       "type": "blob"
     },
     "pixie": {
       "path": "pixie",
-      "content": "module.exports = {\"version\":\"0.1.0\",\"remoteDependencies\":[\"https://code.jquery.com/jquery-1.11.0.min.js\"],\"dependencies\":{\"s3\":\"distri/s3:v0.2.0\",\"sha1\":\"distri/sha1:v0.2.0\"}};",
+      "content": "module.exports = {\"version\":\"0.1.1\",\"remoteDependencies\":[\"https://code.jquery.com/jquery-1.11.0.min.js\"],\"dependencies\":{\"sha1\":\"distri/sha1:v0.2.0\"}};",
       "type": "blob"
     },
     "test/test": {
       "path": "test/test",
-      "content": "(function() {\n  var S3Trinket, trinket;\n\n  S3Trinket = require(\"../main\");\n\n  trinket = S3Trinket(JSON.parse(localStorage.TRINKET_POLICY));\n\n  trinket.loadWorkspace(\"master\").then(function(data) {\n    return console.log(data);\n  });\n\n}).call(this);\n",
+      "content": "(function() {\n  var S3Trinket, trinket;\n\n  S3Trinket = require(\"../main\");\n\n  trinket = S3Trinket(JSON.parse(localStorage.TRINKET_POLICY));\n\n  trinket.saveWorkspace(\"yolo\", {\n    radical: true\n  }).then(function(key) {\n    return console.log(key);\n  });\n\n  trinket.post(new Blob([\"duder\"], {\n    type: \"text/plain\"\n  })).then(function(key) {\n    return console.log(key);\n  });\n\n}).call(this);\n",
+      "type": "blob"
+    },
+    "uploader": {
+      "path": "uploader",
+      "content": "(function() {\n  var extractPolicyData, getKey, objectToForm, sendForm;\n\n  module.exports = function(credentials) {\n    var accessKey, acl, bucket, policy, signature, _ref;\n    policy = credentials.policy, signature = credentials.signature, accessKey = credentials.accessKey;\n    _ref = extractPolicyData(policy), acl = _ref.acl, bucket = _ref.bucket;\n    return {\n      upload: function(_arg) {\n        var blob, cacheControl, key;\n        key = _arg.key, blob = _arg.blob, cacheControl = _arg.cacheControl;\n        return sendForm(\"https://\" + bucket + \".s3.amazonaws.com\", objectToForm({\n          key: key,\n          \"Content-Type\": blob.type,\n          \"Cache-Control\": \"max-age=\" + (cacheControl || 31536000),\n          AWSAccessKeyId: accessKey,\n          acl: acl,\n          policy: policy,\n          signature: signature,\n          file: blob\n        }));\n      }\n    };\n  };\n\n  sendForm = function(url, formData) {\n    return $.ajax({\n      url: url,\n      data: formData,\n      processData: false,\n      contentType: false,\n      type: 'POST'\n    });\n  };\n\n  objectToForm = function(data) {\n    var formData;\n    return formData = Object.keys(data).reduce(function(formData, key) {\n      formData.append(key, data[key]);\n      return formData;\n    }, new FormData);\n  };\n\n  extractPolicyData = function(policy) {\n    var conditions, policyObject;\n    policyObject = JSON.parse(atob(policy));\n    conditions = policyObject.conditions;\n    return {\n      acl: getKey(conditions, \"acl\"),\n      bucket: getKey(conditions, \"bucket\")\n    };\n  };\n\n  getKey = function(conditions, key) {\n    var results;\n    results = conditions.filter(function(condition) {\n      return typeof condition === \"object\";\n    }).map(function(object) {\n      return object[key];\n    }).filter(function(value) {\n      return value;\n    });\n    return results[0];\n  };\n\n}).call(this);\n",
       "type": "blob"
     }
   },
   "progenitor": {
     "url": "http://www.danielx.net/editor/"
   },
-  "version": "0.1.0",
+  "version": "0.1.1",
   "entryPoint": "main",
   "remoteDependencies": [
     "https://code.jquery.com/jquery-1.11.0.min.js"
@@ -64,73 +74,6 @@ window["distri/s3-trinket:master"]({
     "publishBranch": "gh-pages"
   },
   "dependencies": {
-    "s3": {
-      "source": {
-        "LICENSE": {
-          "path": "LICENSE",
-          "content": "The MIT License (MIT)\n\nCopyright (c) 2014 distri\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
-          "mode": "100644",
-          "type": "blob"
-        },
-        "README.md": {
-          "path": "README.md",
-          "content": "s3\n==\n\nUpload to S3\n",
-          "mode": "100644",
-          "type": "blob"
-        },
-        "main.coffee.md": {
-          "path": "main.coffee.md",
-          "content": "S3\n====\n\nUpload data directly to S3 from the client.\n\nUsage\n-----\n\n>     uploader = S3.uploader(JSON.parse(localStorage.S3Policy))\n>     uploader.upload\n>       key: \"myfile.text\"\n>       blob: new Blob [\"radical\"]\n>       cacheControl: 60 # default 31536000\n\nThe policy is a JSON object with the following keys:\n\n- `accessKey`\n- `acl`\n- `bucket`\n- `policy`\n- `signature`\n\nSince these are all needed to create and sign the policy we keep them all\ntogether.\n\nGiving this object to the uploader method creates an uploader capable of\nasynchronously uploading files to the bucket specified in the policy.\n\nNotes\n-----\n\nThe policy must specify a `Cache-Control` header because we always try to set it.\n\nImplementation\n--------------\n\n    module.exports =\n      fetchPolicy: (callback) ->\n        xhr = new XMLHttpRequest\n        xhr.open('GET', \"http://locohost:5000/policy.json\", true)\n        xhr.onreadystatechange = ->\n          return if xhr.readyState != 4\n\n          callback JSON.parse(xhr.responseText)\n\n        xhr.send()\n\n        return xhr\n\n      uploader: (credentials) ->\n        {acl, bucket, policy, signature, accessKey} = credentials\n\n        upload: ({key, blob, cacheControl}) ->\n          sendForm \"https://#{bucket}.s3.amazonaws.com\",\n            key: key\n            \"Content-Type\": blob.type\n            \"Cache-Control\": \"max-age=#{cacheControl or 31536000}\"\n            AWSAccessKeyId: accessKey\n            acl: acl\n            policy: policy\n            signature: signature\n            file: blob\n\nHelpers\n-------\n\n    sendForm = (url, data) ->\n      xhr = new XMLHttpRequest\n      xhr.open('POST', url, true)\n\n      formData = Object.keys(data).reduce (formData, key) ->\n        formData.append(key, data[key])\n\n        return formData\n      , new FormData\n\n      xhr.send formData\n\n      return xhr\n\nTODO\n----\n\nAll the data could be extracted from the policy data itself without needing to\ndouble specify acl, bucket, etc.\n",
-          "mode": "100644",
-          "type": "blob"
-        },
-        "pixie.cson": {
-          "path": "pixie.cson",
-          "content": "version: \"0.2.0\"\n",
-          "mode": "100644",
-          "type": "blob"
-        },
-        "test/upload.coffee": {
-          "path": "test/upload.coffee",
-          "content": "global.S3 = require \"/main\"\n",
-          "mode": "100644",
-          "type": "blob"
-        }
-      },
-      "distribution": {
-        "main": {
-          "path": "main",
-          "content": "(function() {\n  var sendForm;\n\n  module.exports = {\n    fetchPolicy: function(callback) {\n      var xhr;\n      xhr = new XMLHttpRequest;\n      xhr.open('GET', \"http://locohost:5000/policy.json\", true);\n      xhr.onreadystatechange = function() {\n        if (xhr.readyState !== 4) {\n          return;\n        }\n        return callback(JSON.parse(xhr.responseText));\n      };\n      xhr.send();\n      return xhr;\n    },\n    uploader: function(credentials) {\n      var accessKey, acl, bucket, policy, signature;\n      acl = credentials.acl, bucket = credentials.bucket, policy = credentials.policy, signature = credentials.signature, accessKey = credentials.accessKey;\n      return {\n        upload: function(_arg) {\n          var blob, cacheControl, key;\n          key = _arg.key, blob = _arg.blob, cacheControl = _arg.cacheControl;\n          return sendForm(\"https://\" + bucket + \".s3.amazonaws.com\", {\n            key: key,\n            \"Content-Type\": blob.type,\n            \"Cache-Control\": \"max-age=\" + (cacheControl || 31536000),\n            AWSAccessKeyId: accessKey,\n            acl: acl,\n            policy: policy,\n            signature: signature,\n            file: blob\n          });\n        }\n      };\n    }\n  };\n\n  sendForm = function(url, data) {\n    var formData, xhr;\n    xhr = new XMLHttpRequest;\n    xhr.open('POST', url, true);\n    formData = Object.keys(data).reduce(function(formData, key) {\n      formData.append(key, data[key]);\n      return formData;\n    }, new FormData);\n    xhr.send(formData);\n    return xhr;\n  };\n\n}).call(this);\n",
-          "type": "blob"
-        },
-        "pixie": {
-          "path": "pixie",
-          "content": "module.exports = {\"version\":\"0.2.0\"};",
-          "type": "blob"
-        },
-        "test/upload": {
-          "path": "test/upload",
-          "content": "(function() {\n  global.S3 = require(\"/main\");\n\n}).call(this);\n",
-          "type": "blob"
-        }
-      },
-      "progenitor": {
-        "url": "http://www.danielx.net/editor/"
-      },
-      "version": "0.2.0",
-      "entryPoint": "main",
-      "repository": {
-        "branch": "v0.2.0",
-        "default_branch": "master",
-        "full_name": "distri/s3",
-        "homepage": null,
-        "description": "Upload to S3",
-        "html_url": "https://github.com/distri/s3",
-        "url": "https://api.github.com/repos/distri/s3",
-        "publishBranch": "gh-pages"
-      },
-      "dependencies": {}
-    },
     "sha1": {
       "source": {
         "LICENSE": {
