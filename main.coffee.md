@@ -34,7 +34,8 @@ After sifting post image sets.
       uploader = Uploader(policy)
 
       user = getUserFromPolicy(policy)
-      base = "http://#{policy.bucket}.s3.amazonaws.com/#{user}"
+      {bucket} = extractPolicyData(policy.policy)
+      base = "http://s3.amazonaws.com/#{bucket}/#{user}"
 
 Post a blob to S3 using the given namespace as a content addressable store.
 
@@ -69,6 +70,8 @@ Expose SHA1 for others to use.
 
 Helpers
 -------
+
+    {extractPolicyData} = require "./util"
 
     blobToS3 = (uploader, namespace, blob) ->
       deferred = $.Deferred()

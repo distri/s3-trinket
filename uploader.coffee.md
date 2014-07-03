@@ -37,7 +37,7 @@ Implementation
       {acl, bucket} = extractPolicyData(policy)
 
       upload: ({key, blob, cacheControl}) ->
-        sendForm "https://#{bucket}.s3.amazonaws.com", objectToForm
+        sendForm "https://s3.amazonaws.com/#{bucket}", objectToForm
           key: key
           "Content-Type": blob.type
           "Cache-Control": "max-age=#{cacheControl or 31536000}"
@@ -49,6 +49,8 @@ Implementation
 
 Helpers
 -------
+
+    {extractPolicyData} = require "./util"
 
     sendForm = (url, formData) ->
       $.ajax
@@ -65,20 +67,3 @@ Helpers
         return formData
       , new FormData
 
-    extractPolicyData = (policy) ->
-      policyObject = JSON.parse(atob(policy))
-
-      conditions = policyObject.conditions
-
-      acl: getKey(conditions, "acl")
-      bucket: getKey(conditions, "bucket")
-
-    getKey = (conditions, key) ->
-      results = conditions.filter (condition) ->
-        typeof condition is "object"
-      .map (object) ->
-        object[key]
-      .filter (value) ->
-        value
-
-      results[0]
