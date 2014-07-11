@@ -37,6 +37,9 @@ After sifting post image sets.
       {bucket} = extractPolicyData(policy.policy)
       base = "http://s3.amazonaws.com/#{bucket}/#{user}"
 
+      basePath: ->
+        "#{base}data/"
+
 Post a blob to S3 using the given namespace as a content addressable store.
 
       post: (blob) ->

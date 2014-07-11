@@ -7,3 +7,7 @@ describe "Trinket", ->
     trinket.post(new Blob(["duder"], type: "text/plain")).then (key) ->
       console.log key
       done()
+    , done
+
+  it "should know the base path", ->
+    console.log trinket.basePath()
