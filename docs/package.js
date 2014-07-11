@@ -186,7 +186,7 @@
     },
     "pixie.cson": {
       "path": "pixie.cson",
-      "content": "version: \"0.1.1\"\nremoteDependencies: [\n  \"https://code.jquery.com/jquery-1.11.0.min.js\"\n]\ndependencies:\n  sha1: \"distri/sha1:v0.2.0\"\n",
+      "content": "version: \"0.1.2\"\nremoteDependencies: [\n  \"https://code.jquery.com/jquery-1.11.0.min.js\"\n]\ndependencies:\n  sha1: \"distri/sha1:v0.2.0\"\n",
       "mode": "100644",
       "type": "blob"
     },
@@ -205,7 +205,8 @@
     "util.coffee.md": {
       "path": "util.coffee.md",
       "content": "Util\n====\n\n\n    getKey = (conditions, key) ->\n      results = conditions.filter (condition) ->\n        typeof condition is \"object\"\n      .map (object) ->\n        object[key]\n      .filter (value) ->\n        value\n\n      results[0]\n\n    module.exports =\n      extractPolicyData: (policy) ->\n        policyObject = JSON.parse(atob(policy))\n  \n        conditions = policyObject.conditions\n  \n        acl: getKey(conditions, \"acl\")\n        bucket: getKey(conditions, \"bucket\")\n",
-      "mode": "100644"
+      "mode": "100644",
+      "type": "blob"
     }
   },
   "distribution": {
@@ -216,7 +217,7 @@
     },
     "pixie": {
       "path": "pixie",
-      "content": "module.exports = {\"version\":\"0.1.1\",\"remoteDependencies\":[\"https://code.jquery.com/jquery-1.11.0.min.js\"],\"dependencies\":{\"sha1\":\"distri/sha1:v0.2.0\"}};",
+      "content": "module.exports = {\"version\":\"0.1.2\",\"remoteDependencies\":[\"https://code.jquery.com/jquery-1.11.0.min.js\"],\"dependencies\":{\"sha1\":\"distri/sha1:v0.2.0\"}};",
       "type": "blob"
     },
     "test/test": {
@@ -238,7 +239,7 @@
   "progenitor": {
     "url": "http://www.danielx.net/editor/"
   },
-  "version": "0.1.1",
+  "version": "0.1.2",
   "entryPoint": "main",
   "remoteDependencies": [
     "https://code.jquery.com/jquery-1.11.0.min.js"
