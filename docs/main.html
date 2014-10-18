@@ -102,13 +102,17 @@ module.exports = <span class="function"><span class="title">S3Trinket</span></sp
     $.getJSON <span class="string">"<span class="subst">#{base}</span>workspaces/<span class="subst">#{name}</span>.json"</span>
 
   saveWorkspace: (name, data) -&gt;
-    key = <span class="string">"<span class="subst">#{user}</span>workspaces/<span class="subst">#{name}</span>.json"</span>
+    file = <span class="string">"workspaces/<span class="subst">#{name}</span>.json"</span>
+    key = <span class="string">"<span class="subst">#{user}</span><span class="subst">#{file}</span>"</span>
+    url = <span class="string">"<span class="subst">#{base}</span><span class="subst">#{file}</span>"</span>
+
     uploader.upload
       key: key
       blob: <span class="keyword">new</span> Blob [JSON.stringify(data)], type: <span class="string">"application/json"</span>
-      cacheControl: <span class="number">60</span>
+      cacheControl: <span class="number">5</span>
     .<span class="keyword">then</span> -&gt;
-      key
+      key: key
+      url: url
 
   list: (namespace=<span class="string">""</span>) -&gt;
     namespace = <span class="string">"<span class="subst">#{namespace}</span>"</span>
