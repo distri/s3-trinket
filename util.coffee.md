@@ -15,8 +15,8 @@ Util
     module.exports =
       extractPolicyData: (policy) ->
         policyObject = JSON.parse(atob(policy))
-  
+
         conditions = policyObject.conditions
-  
+
         acl: getKey(conditions, "acl")
         bucket: getKey(conditions, "bucket")

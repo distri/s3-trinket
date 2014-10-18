@@ -49,13 +49,17 @@ Post a blob to S3 using the given namespace as a content addressable store.
         $.getJSON "#{base}workspaces/#{name}.json"
 
       saveWorkspace: (name, data) ->
-        key = "#{user}workspaces/#{name}.json"
+        file = "workspaces/#{name}.json"
+        key = "#{user}#{file}"
+        url = "#{base}#{file}"
+
         uploader.upload
           key: key
           blob: new Blob [JSON.stringify(data)], type: "application/json"
-          cacheControl: 60
+          cacheControl: 5
         .then ->
-          key
+          key: key
+          url: url
 
       list: (namespace="") ->
         namespace = "#{namespace}"
